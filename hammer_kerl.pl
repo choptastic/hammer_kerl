@@ -22,58 +22,59 @@
 
 use File::Copy;
 
-print "Hammer Kerl\n";
+our $VERSION = "0.1.0";
+print "Hammer Kerl $VERSION\n";
 
 our $HAMMER_KERL_STRING = "#_ADDED_BY_HAMMER_KERL_";
-our $default_config_file = "~/.hammer_kerl_version";
+our $executable = $0;
+our $args = join(' ', @ARGV);
+our $full_command = "$executable $args";
+our $is_erl_exec = in_list($executable, ("erl", "escript", "erlc"));
 
-my $executable = $0;
-my $args = join(' ', @ARGV);
-
-my $full_command = "$executable $args";
-
-# Run the 'kerl list installations' command and capture the output
-my $command = "kerl list installations";
-open(my $cmd_output, "-|", $command) or die "Failed to execute command: $!";
-
-# Iterate over each line of the output
-
-my @versions;
-my @paths;
-
-my $exec_after = in_list($executable, ("erl", "escript"));
-
-while (my $line = <$cmd_output>) {
-    chomp $line;  # Remove trailing newline character
-
-    # Use a regular expression to capture the version and the path
-    if ($line =~ /^(\S+)\s+(\/\S+)$/) {
-        my $version = $1;
-        my $path = $2;
-		push(@versions, $version);
-		push(@paths, $path);
-
-        #print "Version: $version, Path: $path\n";
-    }
-}
-close($cmd_output);
-
-my $orig_vsn = "";
-
-if (-e $default_config_file) {
-	open(my $orig_fh, '<', $default_config_file);
-	local $/;
-	$orig_vsn = <$orig_fh>;
-	chomp($orig_vsn);
+sub main {
+	&check_kerl();
+	&core();
 }
 
-my $num = -1;
-my $run_vsn = "";
-my $run_path = "";
+## TODO: Update this to ask if we want to auto-install Kerl
+## TODO: Also ask if we want to build erlang, including installing dependencies
+sub check_kerl {
+	my $has_kerl = system("kerl")==0;
+	if(!$has_kerl) {
+		print("Kerl is not installed. Please download and install Kerl: http://github.com/kerl/kerl");
+		print("Then, build and install at least one version of Erlang with Kerl");
+		die("Kerl not installed");
+	}
+	#my $install_kerl = $get_until_valid_lower("Kerl is not installed. Would you like Kerl Hammer to download and install it?", ("y","n"));
+}
 
-my $orig_index = &index_of($orig_vsn, @versions);
-if($orig_index == -1) {
-	# no previous version
+sub core {
+	my $command = "kerl list installations";
+	open(my $cmd_output, "-|", $command) or die "Failed to execute command: $!";
+
+	my @versions;
+	my @paths;
+
+	while (my $line = <$cmd_output>) {
+		chomp $line;  # Remove trailing newline character
+
+		# Use a regular expression to capture the version and the path
+		if ($line =~ /^(\S+)\s+(\/\S+)$/) {
+			my $version = $1;
+			my $path = $2;
+			push(@versions, $version);
+			push(@paths, $path);
+
+			#print "Version: $version, Path: $path\n";
+		}
+	}
+	close($cmd_output);
+
+	my $orig_vsn = "";
+
+	my $num = -1;
+	my $run_vsn = "";
+	my $run_path = "";
 
 	print "These are the current installed versions...\n";
 	for(my $i=0; $i<=$#versions; $i++) {
@@ -87,20 +88,9 @@ if($orig_index == -1) {
 	$run_path = $paths[$num];
 
 	my $act_cmd = ". $run_path/activate";
-	&write_file($default_config_file, $run_vsn);
 	&add_or_instruct($act_cmd);	
-}else{
-	
-	$run_vsn = $versions[$num];
-	$run_path = $paths[$num];
-
-	my $act_cmd = ". $run_path/activate";
-	&add_or_instruct($act_cmd);	
-
-	#print "Activating $run_vsn...\n";
-	#system(". $run_path/activate");
-	#system($full_command) if($exec_after);
 }
+
 
 sub add_or_instruct {
 	my ($act_cmd) = @_;
@@ -204,6 +194,19 @@ sub get_until_valid {
         chomp($val);
     } while(not(in_list($val,@list)));
     return $val;
+}
+
+sub get_until_valid_lower {
+	my ($prompt, @list) = @_;
+	my $val;
+	my $options = join("/", @list);
+	$options = lc($options);
+	do {
+		print "$prompt ($options) [Default: $default]: ";
+		$val = <STDIN>;
+		chomp($val);
+	}while(not(in_list_lc($val, @list)));
+	return lc($val);
 }
 
 sub get_until_valid_default {
