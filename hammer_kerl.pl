@@ -31,6 +31,8 @@ our $args = join(' ', @ARGV);
 our $full_command = "$executable $args";
 our $is_erl_exec = in_list($executable, ("erl", "escript", "erlc"));
 
+&main();
+
 sub main {
 	&check_kerl();
 	&core();
@@ -39,7 +41,7 @@ sub main {
 ## TODO: Update this to ask if we want to auto-install Kerl
 ## TODO: Also ask if we want to build erlang, including installing dependencies
 sub check_kerl {
-	my $has_kerl = system("kerl")==0;
+	my $has_kerl = system("kerl version > /dev/null")==0;
 	if(!$has_kerl) {
 		print("Kerl is not installed. Please download and install Kerl: http://github.com/kerl/kerl");
 		print("Then, build and install at least one version of Erlang with Kerl");
@@ -76,7 +78,7 @@ sub core {
 	my $run_vsn = "";
 	my $run_path = "";
 
-	print "These are the current installed versions...\n";
+	print "Erlang versions found:\n";
 	for(my $i=0; $i<=$#versions; $i++) {
 		my $ii = $i+1;
 		print "$ii: $versions[$i]\n";

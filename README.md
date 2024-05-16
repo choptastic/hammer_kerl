@@ -22,4 +22,14 @@ Once Hammer Kerl is installed, you can just run:
 `erl`, and you'll be prompted. If, however, you've already how an Erlang
 installation activated with `kerl`, then Erlang will just run.
 
+## Verion History
 
+### 0.1.0
+
+* Initial version.
+* Can list Erlang versions built, and allow updating shell config with
+  preferred version
+
+## Author
+
+Copyright 2024 Jesse Gumm - MIT Licensed
