@@ -23,7 +23,7 @@
 use File::Copy;
 
 our $VERSION = "0.1.0";
-print "Hammer Kerl $VERSION\n";
+print "🔨💪 Hammer Kerl 🔨💪 $VERSION\n";
 
 our $HAMMER_KERL_STRING = "#_ADDED_BY_HAMMER_KERL_";
 our $executable = $0;
@@ -50,12 +50,11 @@ sub check_kerl {
 	#my $install_kerl = $get_until_valid_lower("Kerl is not installed. Would you like Kerl Hammer to download and install it?", ("y","n"));
 }
 
-sub core {
+sub get_installed_list {
 	my $command = "kerl list installations";
 	open(my $cmd_output, "-|", $command) or die "Failed to execute command: $!";
 
-	my @versions;
-	my @paths;
+	my @erlangs;
 
 	while (my $line = <$cmd_output>) {
 		chomp $line;  # Remove trailing newline character
@@ -64,33 +63,155 @@ sub core {
 		if ($line =~ /^(\S+)\s+(\/\S+)$/) {
 			my $version = $1;
 			my $path = $2;
-			push(@versions, $version);
-			push(@paths, $path);
+			my %erlang = (version => $version, path => $path);
+			push(@erlangs, \%erlang);
 
 			#print "Version: $version, Path: $path\n";
 		}
 	}
 	close($cmd_output);
+	return @erlangs;
+}
 
+sub get_installable_list {
+	my ($all) = @_;
+	my $suffix = $all ? "all" : "";
+	my $command = "kerl list releases $suffix";
+	`kerl update releases`;
+	open(my $cmd_output, "-|", $command) or die "Failed to execute command: $!";
+
+	my @releases;
+
+	while (my $line = <$cmd_output>) {
+		chomp $line;  # Remove trailing newline character
+
+		# Use a regular expression to capture the version and the path
+		if ($line =~ /^(\S+)(?:\s(\*))?$/) {
+			my $version = $1;
+			my $note = ($2 ? "currently supported by the Erlang Team" : "");
+			my %release = (version => $version, note => $note);
+			push(@releases, \%release);
+		}
+	}
+	close($cmd_output);
+	return @releases;
+}
+
+sub print_versions {
+	my ($show_index, @erlangs) = @_;
+
+	for(my $i=0; $i<=$#erlangs; $i++) {
+		my $displaynum = $i+1;
+		my $vsn = $erlangs[$i]->{version};
+		my $note = $erlangs[$i]->{note};
+		print("$displaynum: ") if($show_index);
+		print "$vsn";
+		print " ($note)" if($note);
+		print "\n";
+	}
+	return @erlangs;
+}
+
+
+sub get_and_print_versions {
+	my ($show_index) = @_;
+	my @erlangs = &get_installed_list();
+	&print_versions($show_index, @erlangs);
+}
+	
+
+sub show_activate {
+	print "\n\nVersions available to activate:\n";
+	my @erlangs = &get_and_print_versions(1);
+	my $vsn_max = $#erlangs+1;
+
+	$num = &get_until_valid_range("Activate which version? [1-$vsn_max]", 1, $vsn_max);
+	$num--;
+	## $run_vsn = $erlangs[$num]->{version};
+	$run_path = $erlangs[$num]->{path};
+
+	my $act_cmd = ". $run_path/activate";
+	&add_or_instruct($act_cmd);	
+}
+
+sub show_install {
+	my ($all) = @_;
+	my $prefix = $all ? "ALL " : "";
+	print "\n\n${prefix}Versions available to install:\n";
+	my @releases = &get_installable_list($all);
+	my %more;
+		
+	if($all) {
+		%more = (version => "Only Show Most Recent Versions");
+	}else{
+		%more = (version => "Show All Available Versions");
+	}
+	push(@releases, \%more);
+
+	&print_versions(1, @releases);
+	my $max = $#releases+1;
+
+	my $action = &get_until_valid_range("Which Version to install? [1-$max]", 1, $max);
+
+
+	if($action==$max) {
+		## The last item ("show all or show most recent") was selected
+		return &show_install(!$all);
+	}
+
+	$action--;
+	
+	my $install_vsn = $releases[$action]->{version};
+
+	my $install_path = "$ENV{HOME}/kerl/$install_vsn";
+
+	my $prompt = "Downloading, Building, and Installing Erlang Version $install_vsn into ~/kerl/$install_vsn. Proceed?";
+
+	my $proceed = &get_until_valid_lower($prompt, ("y", "n"));
+	if($proceed eq "n") {
+		print "Aborting Installation. Returning to main menu.\n";
+		return &core();
+	}
+
+	print("Downloading and building $install_vsn");
+	if(system("kerl build $install_vsn")==0) {
+		if(system("kerl install $install_vsn $install_path")==0) {
+			my $actprompt = "Version $install_vsn installed.  Do you want to activate this newly installed version right away?";
+			my $act = &get_until_valid_lower($actprompt, ("y", "n"));
+			if($act eq "y") {
+				my $act_cmd = ". $install_path/activate";
+				&add_or_instruct($act_cmd);	
+			}
+		}
+	}
+}
+
+sub show_delete {
+	die "Not implemented yet";
+}
+
+sub core {
 	my $orig_vsn = "";
 
 	my $num = -1;
 	my $run_vsn = "";
 	my $run_path = "";
 
-	print "Erlang versions found:\n";
-	for(my $i=0; $i<=$#versions; $i++) {
-		my $ii = $i+1;
-		print "$ii: $versions[$i]\n";
-	}
-	my $vsn_max = $#versions+1;
-	$num = &get_until_valid_range("Activate which version? [1-$vsn_max]", 1, $vsn_max);
-	$num--;
-	$run_vsn = $versions[$num];
-	$run_path = $paths[$num];
+	print "Erlang versions installed:\n";
+	my @erlangs = &get_and_print_versions(0);
 
-	my $act_cmd = ". $run_path/activate";
-	&add_or_instruct($act_cmd);	
+	my $prompt = "\nAvailable actions:\nA: Activate a version of Erlang\nI: Install a new version of Erlang.\nD: Delete a build or installation.\nWhat would you like to do?";
+	my $action = &get_until_valid_lower($prompt, ("a","i","d"));
+
+	if($action eq "a") {
+		&show_activate();
+	}elsif($action eq "i") {
+		&show_install(0);
+	}elsif($action eq "d") {
+		&show_delete();
+	}elsif($action eq "p") {
+		&show_dependencies();
+	}
 }
 
 
@@ -109,6 +230,7 @@ sub add_to_rc {
 	my @shellopts = ("b", "z", "t", "f", "k", "c");
 	my @configs = ("/.bashrc","/.zshrc", "/.tcshrc", "/.config/fish/config.fish", "/.kshrc", "/.cshrc");
 	my $chosen = &get_until_valid_default_lower("b", "Which shell configuration to add the auto-activate script?\n$shells", @shellopts);
+	my $also_reset_vars = &get_until_valid_default_lower("n", "\nBy default, Kerl, overrides the REBAR_CACHE_DIR and REBAR_PLT_DIR variables.\nThis can sometimes lead to issues with some rebar3 projects. For reference, see\nthis Github issue: https://github.com/erlang/rebar3/issues/2762\n\nDo you want kerl_hammer to unset these variables in your shell config?", ("y","n"));
 	my $index = &index_of($chosen, @shellopts);
 	my $config_path = $ENV{'HOME'}.$configs[$index];
 	my $newline = "$cmd $HAMMER_KERL_STRING\n";
@@ -204,7 +326,7 @@ sub get_until_valid_lower {
 	my $options = join("/", @list);
 	$options = lc($options);
 	do {
-		print "$prompt ($options) [Default: $default]: ";
+		print "$prompt ($options): ";
 		$val = <STDIN>;
 		chomp($val);
 	}while(not(in_list_lc($val, @list)));
