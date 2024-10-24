@@ -73,6 +73,39 @@ sub get_installed_list {
 	return @erlangs;
 }
 
+sub is_installed {
+	my($search_vsn) = @_;
+	my @erlangs = &get_installed_list();
+	for(my $i=0;$i<=$#erlangs;$i++) {
+		if($erlangs[$i]->{version} eq $search_vsn) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+
+sub is_built {
+	my($search_vsn) = @_;
+	my $command = "kerl list builds";
+	open(my $cmd_output, "-|", $command) or die "Failed to execute command: $!";
+
+	while (my $line = <$cmd_output>) {
+		chomp $line;  # Remove trailing newline character
+
+		# Use a regular expression to capture the version and the path
+		if ($line =~ /^(\S+),(\S+)$/) {
+			my $version = $1; ## This is actually the "named" version
+			if($version eq $search_vsn) {
+				close($cmd_output);
+				return 1;
+			}
+		}
+	}
+	close($cmd_output);
+	return 0;
+}
+
 sub get_installable_list {
 	my ($all) = @_;
 	my $suffix = $all ? "all" : "";
@@ -169,19 +202,36 @@ sub show_install {
 
 	my $proceed = &get_until_valid_lower($prompt, ("y", "n"));
 	if($proceed eq "n") {
-		print "Aborting Installation. Returning to main menu.\n";
-		return &core();
+		print "Aborting Installation.\n";
+		return &show_install(0);
 	}
 
-	print("Downloading and building $install_vsn");
-	if(system("kerl build $install_vsn")==0) {
-		if(system("kerl install $install_vsn $install_path")==0) {
-			my $actprompt = "Version $install_vsn installed.  Do you want to activate this newly installed version right away?";
-			my $act = &get_until_valid_lower($actprompt, ("y", "n"));
-			if($act eq "y") {
-				my $act_cmd = ". $install_path/activate";
-				&add_or_instruct($act_cmd);	
-			}
+	
+	my $is_installed = &is_installed($install_vsn);
+	if($is_installed) {
+		print "Version $install_vsn already installed. Skipping completely.\n";
+		return &show_install(0)
+	}	
+
+
+	my $is_built = &is_built($install_vsn);
+
+	if($is_built) {
+		print "Version $install_vsn already built. Jumping to Installation instead.\n";
+	}else{
+		print("Downloading and building $install_vsn");
+		if(system("kerl build $install_vsn")!=0) {
+			return;
+		}
+	}
+
+
+	if(system("kerl install $install_vsn $install_path")==0) {
+		my $actprompt = "Version $install_vsn installed.  Do you want to activate this newly installed version right away?";
+		my $act = &get_until_valid_lower($actprompt, ("y", "n"));
+		if($act eq "y") {
+			my $act_cmd = ". $install_path/activate";
+			&add_or_instruct($act_cmd);	
 		}
 	}
 }
