@@ -84,25 +84,33 @@ sub is_installed {
 	return 0;
 }
 
-
-sub is_built {
-	my($search_vsn) = @_;
+sub get_build_list {
 	my $command = "kerl list builds";
 	open(my $cmd_output, "-|", $command) or die "Failed to execute command: $!";
 
+	my @erlangs;
+
 	while (my $line = <$cmd_output>) {
 		chomp $line;  # Remove trailing newline character
-
+		
 		# Use a regular expression to capture the version and the path
 		if ($line =~ /^(\S+),(\S+)$/) {
 			my $version = $1; ## This is actually the "named" version
-			if($version eq $search_vsn) {
-				close($cmd_output);
-				return 1;
-			}
+			push(@erlangs, @version);
 		}
 	}
 	close($cmd_output);
+	return @erlangs;
+}
+
+sub is_built {
+	my($search_vsn) = @_;
+	my @builds = &get_build_list();
+	for my $build (@builds) {
+		if($build eq $search_vsn) {
+			return 1;
+		}
+	}
 	return 0;
 }
 
@@ -135,8 +143,13 @@ sub print_versions {
 
 	for(my $i=0; $i<=$#erlangs; $i++) {
 		my $displaynum = $i+1;
-		my $vsn = $erlangs[$i]->{version};
-		my $note = $erlangs[$i]->{note};
+		my ($vsn, $note);
+		if(ref($erlangs[$i]) eq "HASH") {
+			$vsn = $erlangs[$i]->{version};
+			$note = $erlangs[$i]->{note};
+		}else{
+			$vsn = $erlangs[$i];
+		}
 		print("$displaynum: ") if($show_index);
 		print "$vsn";
 		print " ($note)" if($note);
@@ -145,13 +158,11 @@ sub print_versions {
 	return @erlangs;
 }
 
-
 sub get_and_print_versions {
 	my ($show_index) = @_;
 	my @erlangs = &get_installed_list();
 	&print_versions($show_index, @erlangs);
 }
-	
 
 sub show_activate {
 	print "\n\nVersions available to activate:\n";
@@ -236,8 +247,61 @@ sub show_install {
 	}
 }
 
+
 sub show_delete {
-	die "Not implemented yet";
+	my @installs = &get_installed_list();
+	my @builds = &get_build_list();
+
+	my @combined = @builds;
+	for (my $i=0; $i<=$#installs; $i++) {
+		## Get the version from the $installs hash reference
+		my $vsn = $installs[$i]->{version};
+
+		## Convert it to a basic string
+		$installs[$i] = $vsn;
+
+		## If the version has not already been built, then push it onto the list
+		if(not(in_list($vsn, @builds))) {
+			push(@combined, $vsn);
+		}
+	}
+
+	print "Available versions to delete:\n";
+	&print_versions(1, @combined);
+	my $max = $#combined+1;
+	my $prompt = "Which version would you like to delete? (this will delete both builds and installations) [1-$max]: ";
+	my $delnum = &get_until_valid_range($prompt, 1, $max);
+	$delnum--;
+	
+	my $delvsn = $combined[$delnum];
+
+	my $is_built = in_list($delvsn, @builds);
+	my $is_installed = in_list($delvsn, @installs);
+
+	$prompt = "Are you sure you want to delete Erlang $delvsn? If so, type '$delvsn' exactly (or type 'c' to cancel): ";
+
+	if(&get_until_valid_lower($prompt, ($delvsn, "c")) eq "c") {
+		print "Aborting Deletion\n";
+		return &core();
+	}
+
+	if($is_installed) {
+		if(system("kerl delete installation $delvsn")) {
+			print "Hammer Kerl encounted and error attempting to delete an installation.\nTry running this on the command line and re-run hammer_kerl:\n\n";
+			print "    kerl_deactivate\n\n";
+
+			return;
+		}
+	}
+
+	if($is_built) {
+		if(system("kerl delete build $delvsn")) {
+			print "Hammer Kerl Crashed Deleting Build $delvsn\n";
+			return;
+		}
+	}
+
+	return &core();
 }
 
 sub core {
@@ -250,8 +314,8 @@ sub core {
 	print "Erlang versions installed:\n";
 	my @erlangs = &get_and_print_versions(0);
 
-	my $prompt = "\nAvailable actions:\nA: Activate a version of Erlang\nI: Install a new version of Erlang.\nD: Delete a build or installation.\nWhat would you like to do?";
-	my $action = &get_until_valid_lower($prompt, ("a","i","d"));
+	my $prompt = "\nAvailable actions:\nA: Activate a version of Erlang\nI: Install a new version of Erlang.\nD: Delete a build or installation.\nQ: Quit\nWhat would you like to do?";
+	my $action = &get_until_valid_lower($prompt, ("A","I","D","Q"));
 
 	if($action eq "a") {
 		&show_activate();
@@ -261,6 +325,8 @@ sub core {
 		&show_delete();
 	}elsif($action eq "p") {
 		&show_dependencies();
+	}elsif($action eq "q") {
+		return;
 	}
 }
 
