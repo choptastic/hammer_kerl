@@ -24,6 +24,10 @@ installation activated with `kerl`, then Erlang will just run.
 
 ## Verion History
 
+### 0.2.0
+
+* Added functions to install and delete Erlang functions.
+
 ### 0.1.0
 
 * Initial version.
@@ -32,4 +36,4 @@ installation activated with `kerl`, then Erlang will just run.
 
 ## Author
 
-Copyright 2024 Jesse Gumm - MIT Licensed
+Copyright 2024 [Jesse Gumm](http://jessegumm.com) - [MIT Licensed](https://github.com/choptastic/hammer_kerl/blob/master/LICENSE.md)

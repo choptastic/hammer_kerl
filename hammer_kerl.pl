@@ -22,7 +22,7 @@
 
 use File::Copy;
 
-our $VERSION = "0.2.0 (beta)";
+our $VERSION = "0.2.0";
 print "🔨💪 Hammer Kerl 🔨💪 $VERSION\n";
 
 our $HAMMER_KERL_STRING = "#_ADDED_BY_HAMMER_KERL_";
