@@ -1,9 +1,15 @@
 # Hammer Kerl
 
-[Kerl](https://github.com/kerl/kerl) is an excellent tool for installing
-Erlang, but managing the existing installations can sometimes be a pain.
+Hammer Kerl is a terminal-based menu-system around
+[Kerl](https://github.com/kerl/kerl), the most excellent Erlang build and
+installation management system.
 
-Hammer Kerl is a tool to assist `kerl`.
+And while Kerl is indeed very excellent, I sometimes forget certain details
+about how kerl works (building, installing, and activating).
+
+To alleviate some of my own confusions, I built Hammer Kerl as a tool to assist
+with the managing Kerl's most basic features, and so that when I forget a
+thing, the menu will help guide me.
 
 ## Install
 
@@ -40,6 +46,12 @@ and you'll be prompted with the Hammer Kerl menu if there is no
 * Prompt to automatically install all dependencies.
 
 ## Verion History
+
+### 0.2.1
+
+* Fixed a typo in the install process
+* Update the script so it runs on more environments (using `env` instead of
+  `/usr/bin/perl`).
 
 ### 0.2.0
 
