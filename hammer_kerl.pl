@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 #
 # Copyright (c) 2024 Jesse Gumm
 #
@@ -22,7 +22,7 @@
 
 use File::Copy;
 
-our $VERSION = "0.2.0";
+our $VERSION = "0.2.1";
 print "🔨💪 Hammer Kerl 🔨💪 $VERSION\n";
 
 our $HAMMER_KERL_STRING = "#_ADDED_BY_HAMMER_KERL_";
@@ -209,7 +209,7 @@ sub show_install {
 
 	my $install_path = "$ENV{HOME}/kerl/$install_vsn";
 
-	my $prompt = "Downloading, Building, and Installing Erlang Version $install_vsn into ~/kerl/$install_vsn. Proceed?";
+	my $prompt = "Downloading, Building, and/or Installing Erlang Version $install_vsn into ~/kerl/$install_vsn. Proceed?";
 
 	my $proceed = &get_until_valid_lower($prompt, ("y", "n"));
 	if($proceed eq "n") {
@@ -230,7 +230,7 @@ sub show_install {
 	if($is_built) {
 		print "Version $install_vsn already built. Jumping to Installation instead.\n";
 	}else{
-		print("Downloading and building $install_vsn");
+		print("Downloading and building $install_vsn...\n");
 		if(system("kerl build $install_vsn")!=0) {
 			return;
 		}

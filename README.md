@@ -17,13 +17,13 @@ sudo make install
 
 ## Usage
 
-Once Hammer Kerl is installed, you can just run:
+Once Hammer Kerl is installed, you can just run `hammer_kerl` from the terminal
+to see what it can do.
 
-`erl`, and you'll be prompted on what to do. If, however, you've already how an
-Erlang installation activated with `kerl`, then Erlang will just run.
-
-You can also always run `hammer_kerl` from the command-line and it will give
-you a basic menu of things it can do.
+Additionally, after `hammer_kerl` is installed, if you run `erl` or`escript`
+and you'll be prompted with the Hammer Kerl menu if there is no
+`kerl`-activated version of Erlang. If, however, you've already have a
+`kerl`-activated Erlang installation, then Erlang will just run.
 
 ## Features
 
@@ -35,11 +35,18 @@ you a basic menu of things it can do.
   don't have to activate every time or mess about with the shell startup
   scripts yourself).
 
+## TODO
+
+* Prompt to automatically install all dependencies.
+
 ## Verion History
 
 ### 0.2.0
 
-* Added functions to install and delete Erlang functions.
+* Added **Install Erlang** option, which will download, build, and/or install
+  Erlang as necessary from a menu of available releases.
+* Added **Delete Erlang** option, which, like a sledgehammer, will delete
+  Erlang installations and builds of the selected version.
 
 ### 0.1.0
 
