@@ -96,7 +96,7 @@ sub get_build_list {
 		# Use a regular expression to capture the version and the path
 		if ($line =~ /^(\S+),(\S+)$/) {
 			my $version = $1; ## This is actually the "named" version
-			push(@erlangs, @version);
+			push(@erlangs, $version);
 		}
 	}
 	close($cmd_output);
@@ -266,6 +266,8 @@ sub show_delete {
 		}
 	}
 
+	@combined = &sort_semver(@combined);
+
 	print "Available versions to delete:\n";
 	&print_versions(1, @combined);
 	my $max = $#combined+1;
@@ -276,6 +278,7 @@ sub show_delete {
 	my $delvsn = $combined[$delnum];
 
 	my $is_built = in_list($delvsn, @builds);
+
 	my $is_installed = in_list($delvsn, @installs);
 
 	$prompt = "Are you sure you want to delete Erlang $delvsn? If so, type '$delvsn' exactly (or type 'c' to cancel): ";
@@ -287,7 +290,7 @@ sub show_delete {
 
 	if($is_installed) {
 		if(system("kerl delete installation $delvsn")) {
-			print "Hammer Kerl encounted and error attempting to delete an installation.\nTry running this on the command line and re-run hammer_kerl:\n\n";
+			print "\nHammer Kerl encounted and error attempting to delete an installation.\nTry running this command to deactivate it, then re-run hammer_kerl:\n\n";
 			print "    kerl_deactivate\n\n";
 
 			return;
@@ -509,4 +512,16 @@ sub is_integer {
     return (!ref($val) and $val == int($val)); ## tests whether is numerically equal to itself.
 }
 
+sub sort_semver {
+	my @versions = @_;
 
+	return sort {
+		my ($a_major, $a_minor, $a_patch) = split(/\./, $a);
+		my ($b_major, $b_minor, $b_patch) = split(/\./, $b);
+
+		# Sort by major, then minor, then patch
+		$a_major <=> $b_major ||
+		$a_minor <=> $b_minor ||
+		$a_patch <=> $b_patch;
+	} @versions;
+}
