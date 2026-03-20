@@ -22,7 +22,7 @@
 
 use File::Copy;
 
-our $VERSION = "0.2.1";
+our $VERSION = "0.2.2";
 print "🔨💪 Hammer Kerl 🔨💪 $VERSION\n";
 
 our $HAMMER_KERL_STRING = "#_ADDED_BY_HAMMER_KERL_";
@@ -43,8 +43,8 @@ sub main {
 sub check_kerl {
 	my $has_kerl = system("kerl version > /dev/null")==0;
 	if(!$has_kerl) {
-		print("Kerl is not installed. Please download and install Kerl: http://github.com/kerl/kerl");
-		print("Then, build and install at least one version of Erlang with Kerl");
+		print("Kerl is not installed. Please download and install Kerl: http://github.com/kerl/kerl\n");
+		print("Then, build and install at least one version of Erlang with Kerl\n");
 		die("Kerl not installed");
 	}
 	#my $install_kerl = $get_until_valid_lower("Kerl is not installed. Would you like Kerl Hammer to download and install it?", ("y","n"));
